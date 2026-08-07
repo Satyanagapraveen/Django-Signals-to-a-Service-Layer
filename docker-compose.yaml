@@ -24,8 +24,10 @@ services:
      - "8000:8000"
    environment: 
      - DATABASE_URL=${DATABASE_URL}
+     - DEBUG=${DEBUG}
+     - SECRET_KEY=${SECRET_KEY}
    healthcheck:
-     test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health\")'"]
+     test: ["CMD-SHELL", "curl -f http://localhost:8000/admin/login/"]
      interval: 10s
      timeout: 5s
      retries: 5 
