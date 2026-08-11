@@ -1,7 +1,8 @@
 from django.test import TestCase
 from django.contrib.auth.models import User
 from orders.models import Order, UserStats
-
+from orders.signals import update_user_stats_on_order_save
+from django.db.models.signals import post_save
 class SignalBypassTest(TestCase):
     def test_bulk_update_bypasses_signal(self):
         user1 = User.objects.create_user(username='user1', password='pw')
@@ -27,3 +28,16 @@ class SignalBypassTest(TestCase):
         stats1.refresh_from_db()
         self.assertEqual(stats1.order_count, 3) 
         self.assertEqual(stats1.total_spent, 110.00)
+
+class SignalIsolationTest(TestCase):
+    def setUp(self):
+        post_save.connect(update_user_stats_on_order_save, sender=Order)
+        self.user = User.objects.create_user(username='iso_user', password='pw')
+
+    def tearDown(self):
+        post_save.disconnect(update_user_stats_on_order_save, sender=Order)
+
+    def test_signal_fires_when_connected(self):
+        Order.objects.create(user=self.user, total='100.00')
+        stats = UserStats.objects.get(user=self.user)
+        self.assertEqual(stats.total_spent, 100.00)
